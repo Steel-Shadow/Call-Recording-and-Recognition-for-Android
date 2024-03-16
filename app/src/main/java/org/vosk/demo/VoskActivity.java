@@ -39,7 +39,9 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class VoskActivity extends Activity implements
+import com.tfri.base.BaseActivity;
+
+public class VoskActivity extends BaseActivity implements
         RecognitionListener {
 
     static private final int STATE_START = 0;
@@ -57,10 +59,12 @@ public class VoskActivity extends Activity implements
     private TextView resultView;
 
     @Override
-    public void onCreate(Bundle state) {
-        super.onCreate(state);
-        setContentView(R.layout.main);
+    protected int getLayoutId() {
+        return R.layout.main;
+    }
 
+    @Override
+    protected void initView() {
         // Setup layout
         resultView = findViewById(R.id.result_text);
         setUiState(STATE_START);
@@ -68,7 +72,10 @@ public class VoskActivity extends Activity implements
         findViewById(R.id.recognize_file).setOnClickListener(view -> recognizeFile());
         findViewById(R.id.recognize_mic).setOnClickListener(view -> recognizeMicrophone());
         ((ToggleButton) findViewById(R.id.pause)).setOnCheckedChangeListener((view, isChecked) -> pause(isChecked));
+    }
 
+    @Override
+    protected void initData() {
         LibVosk.setLogLevel(LogLevel.INFO);
 
         // Check if user has given permission to record audio, init the model after permission is granted
@@ -81,7 +88,7 @@ public class VoskActivity extends Activity implements
     }
 
     private void initModel() {
-        StorageService.unpack(this, "model-en-us", "model",
+        StorageService.unpack(this, "model-", "model",
                 (model) -> {
                     this.model = model;
                     setUiState(STATE_READY);

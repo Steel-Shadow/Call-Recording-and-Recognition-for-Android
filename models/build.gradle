@@ -1,12 +1,8 @@
 apply plugin: 'com.android.library'
+apply from : '../common.gradle'
 
 android {
     namespace "org.vosk.models"
-    compileSdkVersion 33
-    defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 33
-    }
     buildFeatures {
         buildConfig = false
     }
@@ -18,12 +14,20 @@ android {
 }
 
 tasks.register('genUUID') {
-    def uuid = UUID.randomUUID().toString()
-    def odir = file("$buildDir/generated/assets/model-en-us")
-    def ofile = file("$odir/uuid")
+    def uuid_cn = UUID.randomUUID().toString()
+    def model_cn = file("$buildDir/generated/assets/model-cn")
+    def cn_uuid = file("$model_cn/uuid")
     doLast {
-        mkdir odir
-        ofile.text = uuid
+        mkdir model_cn
+        cn_uuid.text = uuid_cn
+    }
+
+    def uuid_en = UUID.randomUUID().toString()
+    def model_en = file("$buildDir/generated/assets/model-en-us")
+    def en_uuid = file("$model_en/uuid")
+    doLast {
+        mkdir model_en
+        en_uuid.text = uuid_en
     }
 }
 
