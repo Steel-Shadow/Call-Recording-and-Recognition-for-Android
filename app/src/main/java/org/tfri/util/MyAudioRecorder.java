@@ -16,7 +16,7 @@ public class MyAudioRecorder {
     private final MediaRecorder recorder = new MediaRecorder();
     private final String logTag = MyAudioRecorder.class.getSimpleName();
     private String path;
-    private boolean isRecording = false;
+    public boolean isRecording = false;
 
     public enum Mode {
         rename,
@@ -29,6 +29,7 @@ public class MyAudioRecorder {
      * don't use file extension .mp3/.mp4 in constructor
      */
     public MyAudioRecorder(@NonNull String path, Mode mode) {
+        path += ".mp4";
         this.path = path;
         this.mode = mode;
     }
@@ -88,10 +89,11 @@ public class MyAudioRecorder {
      * Stops a recording that has been previously started.
      */
     public void stop() {
-        if (isRecording) {
-            recorder.stop();
-            isRecording = false;
+        if (!isRecording) {
+            return;
         }
+        recorder.stop();
+        isRecording = false;
 
         // convert .mp4 to .mp3
         try {

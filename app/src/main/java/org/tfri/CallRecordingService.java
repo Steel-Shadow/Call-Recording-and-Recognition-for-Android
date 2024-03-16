@@ -38,7 +38,7 @@ import okhttp3.Response;
 public class CallRecordingService extends AccessibilityService
         implements RecognitionListener {
     public static final String tag = CallRecordingService.class.getSimpleName();
-    private final MyAudioRecorder recorder = new MyAudioRecorder(getFilesDir().getPath() + tag, MyAudioRecorder.Mode.overwrite);
+    private MyAudioRecorder recorder;
     private Timer timer;
     private Model model;
     private SpeechStreamService speechStreamService;
@@ -46,7 +46,7 @@ public class CallRecordingService extends AccessibilityService
     @Override
     public void onCreate() {
         super.onCreate();
-
+        recorder = new MyAudioRecorder(getFilesDir() + "/" + tag, MyAudioRecorder.Mode.overwrite);
         Log.d(tag, tag + " create");
         initModel();
 
@@ -55,8 +55,12 @@ public class CallRecordingService extends AccessibilityService
             public void onCallStateChanged(int state, String phoneNumber) {
                 switch (state) {
                     case TelephonyManager.CALL_STATE_IDLE:
-                        timer.cancel();
-                        speechStreamService.stop();
+                        if (timer != null) {
+                            timer.cancel();
+                        }
+                        if (speechStreamService != null) {
+                            speechStreamService.stop();
+                        }
                         recorder.stop();
                         Log.d(tag, "Call State: Idle. Stop recording.");
                         break;
@@ -65,6 +69,7 @@ public class CallRecordingService extends AccessibilityService
                         break;
                     case TelephonyManager.CALL_STATE_OFFHOOK:
                         recorder.start();
+                        Log.d(tag, "Call State: Off-hook. Start recording.");
                         timer = new Timer();
                         timer.scheduleAtFixedRate(new TimerTask() {
                             @Override
@@ -74,7 +79,6 @@ public class CallRecordingService extends AccessibilityService
                                 recorder.start();
                             }
                         }, 10_000, 10_000);
-                        Log.d(tag, "Call State: Off-hook. Start recording.");
                         break;
                 }
             }
@@ -87,9 +91,7 @@ public class CallRecordingService extends AccessibilityService
 
     private void initModel() {
         StorageService.unpack(this, "model-cn", "model",
-                (model) -> {
-                    this.model = model;
-                },
+                (model) -> this.model = model,
                 (exception) -> Log.e(tag, "Failed to unpack the model" + exception.getMessage()));
     }
 
@@ -176,7 +178,7 @@ public class CallRecordingService extends AccessibilityService
     @Override
     public void onFinalResult(String hypothesis) {
         Log.d(tag, "Final result: " + hypothesis);
-        upload(hypothesis);
+        // upload(hypothesis);
     }
 
     @Override
@@ -197,7 +199,7 @@ public class CallRecordingService extends AccessibilityService
             try {
                 Recognizer rec = new Recognizer(model, 16000.f);
 
-                InputStream ais = Files.newInputStream(Paths.get(getFilesDir().getPath() + tag));
+                InputStream ais = Files.newInputStream(Paths.get(getFilesDir() + "/" + tag + ".mp3"));
                 if (ais.skip(44) != 44) throw new IOException("File too short");
 
                 speechStreamService = new SpeechStreamService(rec, ais, 16000);

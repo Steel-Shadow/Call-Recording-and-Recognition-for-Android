@@ -3,10 +3,22 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+    <!--
+    foregroundServiceType:phoneCall requires permission:[android.permission.FOREGROUND_SERVICE_PHONE_CALL] AND any permission in list:[android.permission.MANAGE_OWN_CALLS] More... (Ctrl+F1)
+    Inspection info:For targetSdkVersion >= 34, each foregroundServiceType listed in the <service> element requires specific sets of permissions to be declared in the manifest. If permissions are missing, then when the foreground service is started with a foregroundServiceType that has missing permissions, a SecurityException will be thrown.
+    -->
     <application
         android:icon="@drawable/icon"
         android:label="@string/app_name">
+
         <activity
             android:name="VoskActivity"
             android:exported="true"
@@ -16,5 +28,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".CallRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall|microphone"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>

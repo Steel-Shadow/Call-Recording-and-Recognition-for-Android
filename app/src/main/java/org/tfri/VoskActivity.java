@@ -14,16 +14,18 @@
 
 package org.tfri;
 
-import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import org.tfri.base.BaseActivity;
 import org.vosk.LibVosk;
@@ -40,15 +42,13 @@ import java.io.InputStream;
 
 public class VoskActivity extends BaseActivity implements
         RecognitionListener {
-
+    private static final String tag = VoskActivity.class.getSimpleName();
+    private static final int REQUEST_PERMISSIONS = 200;
     static private final int STATE_START = 0;
     static private final int STATE_READY = 1;
     static private final int STATE_DONE = 2;
     static private final int STATE_FILE = 3;
     static private final int STATE_MIC = 4;
-
-    /* Used to handle permission request */
-    private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 1;
 
     private Model model;
     private SpeechService speechService;
@@ -68,20 +68,30 @@ public class VoskActivity extends BaseActivity implements
 
         findViewById(R.id.recognize_file).setOnClickListener(view -> recognizeFile());
         findViewById(R.id.recognize_mic).setOnClickListener(view -> recognizeMicrophone());
+        // open_settings
+        findViewById(R.id.open_settings).setOnClickListener(view -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         ((ToggleButton) findViewById(R.id.pause)).setOnCheckedChangeListener((view, isChecked) -> pause(isChecked));
     }
 
     @Override
     protected void initData() {
+        getPermissions();
         LibVosk.setLogLevel(LogLevel.INFO);
+        initModel();
+    }
 
-        // Check if user has given permission to record audio, init the model after permission is granted
-        int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
-        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSIONS_REQUEST_RECORD_AUDIO);
-        } else {
-            initModel();
+    private void getPermissions() {
+        // request permissions
+        PackageManager packageManager = getPackageManager();
+        PackageInfo packageInfo = null;
+        try {
+            packageInfo = packageManager.getPackageInfo(getPackageName(), PackageManager.GET_PERMISSIONS);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(tag, "Package name not found", e);
         }
+        assert packageInfo != null;
+        String[] permissions = packageInfo.requestedPermissions;
+        ActivityCompat.requestPermissions(this, permissions, REQUEST_PERMISSIONS);
     }
 
     private void initModel() {
@@ -93,19 +103,19 @@ public class VoskActivity extends BaseActivity implements
                 (exception) -> setErrorState("Failed to unpack the model" + exception.getMessage()));
     }
 
-
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == PERMISSIONS_REQUEST_RECORD_AUDIO) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Recognizer initialization is a time-consuming and it involves IO,
-                // so we execute it in async task
-                initModel();
+        boolean permissionsAccepted = false;
+        for (int i = 0; i < permissions.length; i++) {
+            if (requestCode == REQUEST_PERMISSIONS) {
+                permissionsAccepted = (grantResults[i] == PackageManager.PERMISSION_GRANTED);
+            }
+            if (!permissionsAccepted) {
+                Log.e(tag, "Permission denied: " + permissions[i]);
+//                finish();
             } else {
-                finish();
+                Log.d(tag, "Permission granted: " + permissions[i]);
             }
         }
     }
@@ -240,7 +250,6 @@ public class VoskActivity extends BaseActivity implements
             }
         }
     }
-
 
     private void pause(boolean checked) {
         if (speechService != null) {
