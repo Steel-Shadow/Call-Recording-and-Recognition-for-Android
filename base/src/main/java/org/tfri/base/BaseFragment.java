@@ -1,4 +1,4 @@
-package com.tfri.base;
+package org.tfri.base;
 
 import android.app.Activity;
 import android.app.Application;
@@ -15,12 +15,12 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 
-import com.tfri.base.action.ActivityAction;
-import com.tfri.base.action.BundleAction;
-import com.tfri.base.action.ClickAction;
-import com.tfri.base.action.HandlerAction;
-import com.tfri.base.action.KeyboardAction;
-import com.tfri.base.action.ResourcesAction;
+import org.tfri.base.action.ActivityAction;
+import org.tfri.base.action.BundleAction;
+import org.tfri.base.action.ClickAction;
+import org.tfri.base.action.HandlerAction;
+import org.tfri.base.action.KeyboardAction;
+import org.tfri.base.action.ResourcesAction;
 
 import java.util.List;
 

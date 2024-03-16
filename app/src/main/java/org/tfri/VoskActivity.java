@@ -12,16 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.vosk.demo;
+package org.tfri;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.pm.PackageManager;
-import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import org.tfri.R;
+import org.tfri.base.BaseActivity;
 
 import org.vosk.LibVosk;
 import org.vosk.LogLevel;
@@ -34,12 +39,6 @@ import org.vosk.android.StorageService;
 
 import java.io.IOException;
 import java.io.InputStream;
-
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import com.tfri.base.BaseActivity;
 
 public class VoskActivity extends BaseActivity implements
         RecognitionListener {
@@ -88,7 +87,7 @@ public class VoskActivity extends BaseActivity implements
     }
 
     private void initModel() {
-        StorageService.unpack(this, "model-", "model",
+        StorageService.unpack(this, "model-cn", "model",
                 (model) -> {
                     this.model = model;
                     setUiState(STATE_READY);
@@ -214,11 +213,9 @@ public class VoskActivity extends BaseActivity implements
         } else {
             setUiState(STATE_FILE);
             try {
-                Recognizer rec = new Recognizer(model, 16000.f, "[\"one zero zero zero one\", " +
-                        "\"oh zero one two three four five six seven eight nine\", \"[unk]\"]");
+                Recognizer rec = new Recognizer(model, 16000.f);
 
-                InputStream ais = getAssets().open(
-                        "10001-90210-01803.wav");
+                InputStream ais = getAssets().open("cn1.pcm");
                 if (ais.skip(44) != 44) throw new IOException("File too short");
 
                 speechStreamService = new SpeechStreamService(rec, ais, 16000);

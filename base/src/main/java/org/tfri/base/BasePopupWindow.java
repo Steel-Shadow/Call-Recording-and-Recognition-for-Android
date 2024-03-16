@@ -1,4 +1,4 @@
-package com.tfri.base;
+package org.tfri.base;
 
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
@@ -34,12 +34,12 @@ import androidx.annotation.StyleRes;
 import androidx.core.content.ContextCompat;
 import androidx.core.widget.PopupWindowCompat;
 
-import com.tfri.base.action.ActivityAction;
-import com.tfri.base.action.AnimAction;
-import com.tfri.base.action.ClickAction;
-import com.tfri.base.action.HandlerAction;
-import com.tfri.base.action.KeyboardAction;
-import com.tfri.base.action.ResourcesAction;
+import org.tfri.base.action.ActivityAction;
+import org.tfri.base.action.AnimAction;
+import org.tfri.base.action.ClickAction;
+import org.tfri.base.action.HandlerAction;
+import org.tfri.base.action.KeyboardAction;
+import org.tfri.base.action.ResourcesAction;
 
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;

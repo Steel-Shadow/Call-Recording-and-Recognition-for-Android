@@ -1,4 +1,4 @@
-package com.tfri.base.action;
+package org.tfri.base.action;
 
 import android.content.Context;
 import android.content.res.Resources;

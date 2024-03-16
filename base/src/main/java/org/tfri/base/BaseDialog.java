@@ -1,4 +1,4 @@
-package com.tfri.base;
+package org.tfri.base;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -37,12 +37,12 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LifecycleRegistry;
 
-import com.tfri.base.action.ActivityAction;
-import com.tfri.base.action.AnimAction;
-import com.tfri.base.action.ClickAction;
-import com.tfri.base.action.HandlerAction;
-import com.tfri.base.action.KeyboardAction;
-import com.tfri.base.action.ResourcesAction;
+import org.tfri.base.action.ActivityAction;
+import org.tfri.base.action.AnimAction;
+import org.tfri.base.action.ClickAction;
+import org.tfri.base.action.HandlerAction;
+import org.tfri.base.action.KeyboardAction;
+import org.tfri.base.action.ResourcesAction;
 
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;

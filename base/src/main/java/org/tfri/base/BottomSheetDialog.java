@@ -1,4 +1,4 @@
-package com.tfri.base;
+package org.tfri.base;
 
 import android.annotation.SuppressLint;
 import android.content.Context;

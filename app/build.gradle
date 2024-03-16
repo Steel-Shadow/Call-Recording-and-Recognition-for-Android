@@ -2,9 +2,9 @@ apply plugin: 'com.android.application'
 apply from : '../common.gradle'
 
 android {
-    namespace "org.vosk.demo"
+    namespace "org.tfri"
     defaultConfig {
-        applicationId "org.vosk.demo"
+        applicationId "org.tfri"
         ndkVersion = "25.2.9519653"
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86_64', 'x86'

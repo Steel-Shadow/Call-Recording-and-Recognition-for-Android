@@ -1,4 +1,4 @@
-package com.tfri.base;
+package org.tfri.base;
 
 import android.content.Context;
 import android.util.SparseArray;
@@ -12,7 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.tfri.base.action.ResourcesAction;
+import org.tfri.base.action.ResourcesAction;
 
 /**
  *    author : Android 轮子哥

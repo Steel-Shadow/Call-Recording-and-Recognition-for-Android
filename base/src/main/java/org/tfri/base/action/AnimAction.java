@@ -1,6 +1,6 @@
-package com.tfri.base.action;
+package org.tfri.base.action;
 
-import com.tfri.base.R;
+import org.tfri.base.R;
 
 /**
  *    author : Android 轮子哥
