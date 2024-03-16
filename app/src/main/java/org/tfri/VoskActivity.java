@@ -25,9 +25,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import org.tfri.R;
 import org.tfri.base.BaseActivity;
-
 import org.vosk.LibVosk;
 import org.vosk.LogLevel;
 import org.vosk.Model;
