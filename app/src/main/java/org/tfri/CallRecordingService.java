@@ -13,23 +13,18 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.NotificationCompat;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.tfri.util.HttpUtil;
-import org.tfri.util.MyAudioRecorder;
 import org.vosk.Model;
 import org.vosk.Recognizer;
 import org.vosk.android.RecognitionListener;
-import org.vosk.android.SpeechStreamService;
+import org.vosk.android.SpeechService;
 import org.vosk.android.StorageService;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -38,15 +33,15 @@ import okhttp3.Response;
 public class CallRecordingService extends AccessibilityService
         implements RecognitionListener {
     public static final String tag = CallRecordingService.class.getSimpleName();
-    private MyAudioRecorder recorder;
-    private Timer timer;
+    private static final int NOTIFICATION_ID_SERVICE = 1;
+    private static final int NOTIFICATION_ID_RESULT = 1;
+    private String text = "";
     private Model model;
-    private SpeechStreamService speechStreamService;
+    private SpeechService speechService;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        recorder = new MyAudioRecorder(getFilesDir() + "/" + tag, MyAudioRecorder.Mode.overwrite);
         Log.d(tag, tag + " create");
         initModel();
 
@@ -55,30 +50,24 @@ public class CallRecordingService extends AccessibilityService
             public void onCallStateChanged(int state, String phoneNumber) {
                 switch (state) {
                     case TelephonyManager.CALL_STATE_IDLE:
-                        if (timer != null) {
-                            timer.cancel();
+                        Log.d(tag, "Call State: Idle. Stop recording & recognizing.");
+                        if (speechService != null) {
+                            speechService.stop();
+                            speechService = null;
                         }
-                        if (speechStreamService != null) {
-                            speechStreamService.stop();
-                        }
-                        recorder.stop();
-                        Log.d(tag, "Call State: Idle. Stop recording.");
                         break;
                     case TelephonyManager.CALL_STATE_RINGING:
                         Log.d(tag, "Call State: Ringing");
                         break;
                     case TelephonyManager.CALL_STATE_OFFHOOK:
-                        recorder.start();
-                        Log.d(tag, "Call State: Off-hook. Start recording.");
-                        timer = new Timer();
-                        timer.scheduleAtFixedRate(new TimerTask() {
-                            @Override
-                            public void run() {
-                                recorder.stop();
-                                recognizeFile();
-                                recorder.start();
-                            }
-                        }, 10_000, 10_000);
+                        Log.d(tag, "Call State: Off-hook. Start recording & recognizing.");
+                        try {
+                            Recognizer rec = new Recognizer(model, 16000.0f);
+                            speechService = new SpeechService(rec, 16000.0f);
+                            speechService.startListening(CallRecordingService.this);
+                        } catch (IOException e) {
+                            Log.e(tag, "Error: " + e.getMessage());
+                        }
                         break;
                 }
             }
@@ -95,6 +84,21 @@ public class CallRecordingService extends AccessibilityService
                 (exception) -> Log.e(tag, "Failed to unpack the model" + exception.getMessage()));
     }
 
+    public static void showNotification(Context context, String title, String message) {
+        Notification.Builder builder = new Notification.Builder(context, "default_channel")
+                .setSmallIcon(R.drawable.icon)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setAutoCancel(true);
+
+        // Create channel for Android Oreo and above
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.createNotificationChannel(new NotificationChannel(tag,
+                "Result Channel",
+                NotificationManager.IMPORTANCE_DEFAULT));
+        notificationManager.notify(NOTIFICATION_ID_RESULT, builder.build());
+    }
+
     private void upload(String text) {
         HashMap<String, String> params = new HashMap<>();
         params.put("text", text);
@@ -104,6 +108,7 @@ public class CallRecordingService extends AccessibilityService
                 try {
                     assert response.body() != null;
                     Log.d(tag, "Response: " + response.body().string());
+                    showNotification(CallRecordingService.this, "Upload", "Success");
                 } catch (IOException e) {
                     Log.e(tag, "Error: " + e.getMessage());
                 }
@@ -131,13 +136,13 @@ public class CallRecordingService extends AccessibilityService
         createNotificationChannel();
         Intent notificationIntent = new Intent(this, VoskActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
-        Notification notification = new NotificationCompat.Builder(this, tag)
+        Notification notification = new Notification.Builder(this, tag)
                 .setContentTitle(tag)
                 .setContentText("record call automatically")
                 .setSmallIcon(R.drawable.icon)
                 .setContentIntent(pendingIntent)
                 .build();
-        startForeground(1, notification);
+        startForeground(NOTIFICATION_ID_SERVICE, notification);
     }
 
     private void createNotificationChannel() {
@@ -159,9 +164,9 @@ public class CallRecordingService extends AccessibilityService
     @Override
     public void onDestroy() {
         super.onDestroy();
-        recorder.release();
-        if (speechStreamService != null) {
-            speechStreamService.stop();
+        if (speechService != null) {
+            speechService.stop();
+            speechService.shutdown();
         }
     }
 
@@ -172,7 +177,15 @@ public class CallRecordingService extends AccessibilityService
 
     @Override
     public void onResult(String hypothesis) {
-
+        try {
+            JSONObject jsonObject = new JSONObject(hypothesis);
+            String temp = jsonObject.getString("text");
+            text += temp.isEmpty() ? "" : temp + "\n";
+            Log.d(tag, "Rec result up to now: \n" + text);
+//            upload(text);
+        } catch (JSONException e) {
+            Log.e(tag, "JSON Error: " + e.getMessage());
+        }
     }
 
     @Override
@@ -191,22 +204,4 @@ public class CallRecordingService extends AccessibilityService
         Log.e(tag, "Timeout");
     }
 
-    private void recognizeFile() {
-        if (speechStreamService != null) {
-            speechStreamService.stop();
-            speechStreamService = null;
-        } else {
-            try {
-                Recognizer rec = new Recognizer(model, 16000.f);
-
-                InputStream ais = Files.newInputStream(Paths.get(getFilesDir() + "/" + tag + ".mp3"));
-                if (ais.skip(44) != 44) throw new IOException("File too short");
-
-                speechStreamService = new SpeechStreamService(rec, ais, 16000);
-                speechStreamService.start(this);
-            } catch (IOException e) {
-                Log.e(tag, "Error: " + e.getMessage());
-            }
-        }
-    }
 }
