@@ -17,6 +17,8 @@ import androidx.annotation.NonNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.tfri.util.HttpUtil;
+import org.tfri.util.NotificationHelper;
+import org.tfri.util.VibrationHelper;
 import org.vosk.Model;
 import org.vosk.Recognizer;
 import org.vosk.android.RecognitionListener;
@@ -32,13 +34,14 @@ import okhttp3.Response;
 
 public class CallRecordingService extends AccessibilityService
         implements RecognitionListener {
-    public static final String tag = CallRecordingService.class.getSimpleName();
-    private static final int NOTIFICATION_ID_SERVICE = 1;
-    private static final int NOTIFICATION_ID_RESULT = 1;
+    private static final String tag = CallRecordingService.class.getSimpleName();
+    private static final int NOTIFICATION_ID_SERVICE = 2;
+
     private String text = "";
     private Model model;
     private SpeechService speechService;
 
+    /** @noinspection deprecation*/
     @Override
     public void onCreate() {
         super.onCreate();
@@ -84,39 +87,28 @@ public class CallRecordingService extends AccessibilityService
                 (exception) -> Log.e(tag, "Failed to unpack the model" + exception.getMessage()));
     }
 
-    public static void showNotification(Context context, String title, String message) {
-        Notification.Builder builder = new Notification.Builder(context, "default_channel")
-                .setSmallIcon(R.drawable.icon)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setAutoCancel(true);
-
-        // Create channel for Android Oreo and above
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.createNotificationChannel(new NotificationChannel(tag,
-                "Result Channel",
-                NotificationManager.IMPORTANCE_DEFAULT));
-        notificationManager.notify(NOTIFICATION_ID_RESULT, builder.build());
-    }
 
     private void upload(String text) {
         HashMap<String, String> params = new HashMap<>();
         params.put("text", text);
-        HttpUtil.httpPost("", params, new Callback() {
+        HttpUtil.httpPost("https://mock.apifox.com/m1/3370080-0-default/check", params, new Callback() {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
                 try {
                     assert response.body() != null;
-                    Log.d(tag, "Response: " + response.body().string());
-                    showNotification(CallRecordingService.this, "Upload", "Success");
-                } catch (IOException e) {
-                    Log.e(tag, "Error: " + e.getMessage());
+                    JSONObject jsonObject = new JSONObject(response.body().string());
+                    if (jsonObject.getBoolean("bad")) {
+                        NotificationHelper.showNotification(CallRecordingService.this, "1", "2");
+                        VibrationHelper.vibrate(CallRecordingService.this, 100);
+                    }
+                } catch (Exception e) {
+                    Log.e(tag, "Upload error: " + e.getMessage());
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(tag, "Error: " + e.getMessage());
+                Log.e(tag, "Upload fail: " + e.getMessage());
             }
         });
     }
@@ -175,6 +167,10 @@ public class CallRecordingService extends AccessibilityService
 
     }
 
+    /**
+     * @param hypothesis 从Vosk识别出的文本
+     * @apiNote 上传文本到服务器，返回是否为电信诈骗信息
+     */
     @Override
     public void onResult(String hypothesis) {
         try {
@@ -182,7 +178,7 @@ public class CallRecordingService extends AccessibilityService
             String temp = jsonObject.getString("text");
             text += temp.isEmpty() ? "" : temp + "\n";
             Log.d(tag, "Rec result up to now: \n" + text);
-//            upload(text);
+            upload(text);
         } catch (JSONException e) {
             Log.e(tag, "JSON Error: " + e.getMessage());
         }
