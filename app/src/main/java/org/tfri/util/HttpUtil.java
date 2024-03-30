@@ -23,8 +23,8 @@ import okhttp3.RequestBody;
 
 public class HttpUtil {
     private static final OkHttpClient okHttpClient = new OkHttpClient.Builder()
-            .connectTimeout(100, TimeUnit.SECONDS)//设置连接超时时间
-            .readTimeout(200, TimeUnit.SECONDS)//设置读取超时时间
+            .connectTimeout(5, TimeUnit.SECONDS)//设置连接超时时间
+            .readTimeout(10, TimeUnit.SECONDS)//设置读取超时时间
             .build();
 
     public static boolean checkConnectNetwork(Context context) {

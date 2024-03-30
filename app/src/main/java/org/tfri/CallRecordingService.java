@@ -41,13 +41,14 @@ public class CallRecordingService extends AccessibilityService
     private Model model;
     private SpeechService speechService;
 
-    /** @noinspection deprecation*/
+
+    // @noinspection deprecation
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(tag, tag + " create");
         initModel();
-
+        upload("测试：通话开始");
         PhoneStateListener phoneStateListener = new PhoneStateListener() {
             @Override
             public void onCallStateChanged(int state, String phoneNumber) {
@@ -90,17 +91,18 @@ public class CallRecordingService extends AccessibilityService
 
     private void upload(String text) {
         HashMap<String, String> params = new HashMap<>();
-        params.put("text", text);
-        HttpUtil.httpPost("https://mock.apifox.com/m1/3370080-0-default/check", params, new Callback() {
+        params.put("prompt", text);
+        HttpUtil.httpPost("http://192.168.5.60:30000/", params, new Callback() {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
                 try {
                     assert response.body() != null;
-                    JSONObject jsonObject = new JSONObject(response.body().string());
-                    if (jsonObject.getBoolean("bad")) {
-                        NotificationHelper.showNotification(CallRecordingService.this, "1", "2");
-                        VibrationHelper.vibrate(CallRecordingService.this, 100);
-                    }
+//                    JSONObject jsonObject = new JSONObject(response.body().string());
+                    Log.d(tag, "Upload response: " + response.body().string());
+//                    if (jsonObject.getBoolean("bad")) {
+//                        NotificationHelper.showNotification(CallRecordingService.this, "通话检测异常", "可能为电信诈骗");
+//                        VibrationHelper.vibrate(CallRecordingService.this, 100);
+//                    }
                 } catch (Exception e) {
                     Log.e(tag, "Upload error: " + e.getMessage());
                 }
