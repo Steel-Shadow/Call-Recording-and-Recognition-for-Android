@@ -43,19 +43,29 @@ public class CallRecordingService extends AccessibilityService
     private SpeechService speechService;
     private Timer timer;
     public static final String ACTION_SEND_STRING = CallRecordingService.class.getName() + ".SEND_STRING";
-    public static final String EXTRA_STRING = "extra_string";
-    PhoneStateListener phoneStateListener;
+    public static final String EXTRA_STRING_USER = CallRecordingService.class.getName() + "user";
+    public static final String EXTRA_STRING_BOT = CallRecordingService.class.getName() + "bot";
 
-    private void sendMesToChat(String message) {
-        Log.i(tag, "Send message to chat: " + message);
+    private void sendMesToChat(String user, String bot) {
+        Log.i(tag, "Send message to chat: " + bot + " " + user);
+
         Intent intent = new Intent();
         intent.setAction(ACTION_SEND_STRING)
-                .putExtra(EXTRA_STRING, message)
+                .putExtra(EXTRA_STRING_BOT, bot)
+                .putExtra(EXTRA_STRING_USER, user)
                 .setPackage(getPackageName());
         sendBroadcast(intent);
     }
 
-    private void startUpload() {
+    private void startRecording() {
+        try {
+            Recognizer rec = new Recognizer(model, 16000.0f);
+            speechService = new SpeechService(rec, 16000.0f);
+            speechService.startListening(CallRecordingService.this);
+        } catch (IOException e) {
+            Log.e(tag, "Error: " + e.getMessage());
+        }
+
         timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
@@ -65,7 +75,11 @@ public class CallRecordingService extends AccessibilityService
         }, 10000, 10000); // 每隔10秒执行一次
     }
 
-    private void stopUpload() {
+    private void stopRecording() {
+        if (speechService != null) {
+            speechService.stop();
+            speechService = null;
+        }
         if (timer != null) {
             timer.cancel();
             timer = null;
@@ -80,32 +94,20 @@ public class CallRecordingService extends AccessibilityService
         initModel();
 
 //        upload("测试：通话开始");
-
-        phoneStateListener = new PhoneStateListener() {
+        PhoneStateListener phoneStateListener = new PhoneStateListener() {
             @Override
             public void onCallStateChanged(int state, String phoneNumber) {
                 switch (state) {
                     case TelephonyManager.CALL_STATE_IDLE:
                         Log.d(tag, "Call State: Idle. Stop recording & recognizing.");
-                        if (speechService != null) {
-                            speechService.stop();
-                            speechService = null;
-                        }
-                        stopUpload();
+                        stopRecording();
                         break;
                     case TelephonyManager.CALL_STATE_RINGING:
                         Log.d(tag, "Call State: Ringing");
                         break;
                     case TelephonyManager.CALL_STATE_OFFHOOK:
                         Log.d(tag, "Call State: Off-hook. Start recording & recognizing.");
-                        try {
-                            Recognizer rec = new Recognizer(model, 16000.0f);
-                            speechService = new SpeechService(rec, 16000.0f);
-                            speechService.startListening(CallRecordingService.this);
-                        } catch (IOException e) {
-                            Log.e(tag, "Error: " + e.getMessage());
-                        }
-                        startUpload();
+                        startRecording();
                         break;
                 }
             }
@@ -122,7 +124,6 @@ public class CallRecordingService extends AccessibilityService
                 (exception) -> Log.e(tag, "Failed to unpack the model" + exception.getMessage()));
     }
 
-
     private void upload(String text) {
         HashMap<String, String> params = new HashMap<>();
         params.put("prompt", text);
@@ -136,8 +137,11 @@ public class CallRecordingService extends AccessibilityService
                     if (jsonObject.getBoolean("judge")) {
                         NotificationHelper.showNotification(CallRecordingService.this, "通话检测异常", "可能为电信诈骗");
                         VibrationHelper.vibrate(CallRecordingService.this, 100);
+
+                        String user = jsonObject.getJSONArray("history").getJSONArray(0).getString(0);
+                        sendMesToChat(user, jsonObject.getString("response"));
+                        stopRecording();
                     }
-                    sendMesToChat(jsonObject.getString("response"));
                 } catch (Exception e) {
                     Log.e(tag, "Upload error: " + e.getMessage());
                 }
@@ -145,7 +149,7 @@ public class CallRecordingService extends AccessibilityService
 
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                sendMesToChat("网络请求失败，请检查网络连接");
+                sendMesToChat("", "网络请求失败，请检查网络连接");
                 Log.e(tag, "Upload fail: " + e.getMessage());
             }
         });
@@ -168,7 +172,7 @@ public class CallRecordingService extends AccessibilityService
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new Notification.Builder(this, tag)
                 .setContentTitle(tag)
-                .setContentText("record call automatically")
+                .setContentText("通话检测服务正在运行")
                 .setSmallIcon(R.drawable.icon)
                 .setContentIntent(pendingIntent)
                 .build();
@@ -186,19 +190,9 @@ public class CallRecordingService extends AccessibilityService
     }
 
     @Override
-    public boolean onUnbind(Intent intent) {
-        super.onUnbind(intent);
-        return false;
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
-        if (speechService != null) {
-            speechService.stop();
-            speechService.shutdown();
-        }
-        stopUpload();
+        stopRecording();
     }
 
     @Override

@@ -44,12 +44,17 @@ public class ChatActivity extends BaseActivity implements View.OnClickListener {
     private Button clear;
     private ChatAdapter chatAdapter;
     private List<ChatContent> chatContents;
-    private List<List<String>> history;
+    private boolean hideFirstUser;
+    private String hidedFirstUserMes = "";
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String response = intent.getStringExtra(CallRecordingService.EXTRA_STRING);
-            addChat(response, ChatContent.Type.RECEIVE);
+            hideFirstUser = true;
+            hidedFirstUserMes = intent.getStringExtra(CallRecordingService.EXTRA_STRING_USER);
+            // addChat(user, ChatContent.Type.SEND);
+
+            String bot = intent.getStringExtra(CallRecordingService.EXTRA_STRING_BOT);
+            addChat(bot, ChatContent.Type.RECEIVE);
         }
     };
 
@@ -66,8 +71,8 @@ public class ChatActivity extends BaseActivity implements View.OnClickListener {
     @Override
     protected void initView() {
         rViewChat = findViewById(R.id.recycler_view);
-        editText = findViewById(R.id.Main_etContent);
-        btnSend = findViewById(R.id.Main_btnSend);
+        editText = findViewById(R.id.edit_mes);
+        btnSend = findViewById(R.id.btn_send_mes);
         openSettings = findViewById(R.id.open_settings);
         clear = findViewById(R.id.clear);
     }
@@ -77,19 +82,23 @@ public class ChatActivity extends BaseActivity implements View.OnClickListener {
     protected void initData() {
         getPermissions();
 
-        btnSend.setOnClickListener(this);
+        btnSend.setOnClickListener(v -> {
+            sendMessageToLLM(editText.getText().toString());
+            addChat(editText.getText().toString(), ChatContent.Type.SEND);
+            editText.setText("");
+        });
         openSettings.setOnClickListener(view -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         clear.setOnClickListener(view -> {
             chatContents.clear();
-            history.clear();
             chatAdapter.notifyDataSetChanged();
+            hideFirstUser = false;
+            hidedFirstUserMes = "";
         });
 
         chatContents = new ArrayList<>();
         chatAdapter = new ChatAdapter(this, chatContents);
         rViewChat.setAdapter(chatAdapter);
         rViewChat.setLayoutManager(new LinearLayoutManager(this));
-        history = new ArrayList<>();
 
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(receiver, new IntentFilter(CallRecordingService.ACTION_SEND_STRING), RECEIVER_NOT_EXPORTED);
@@ -135,41 +144,17 @@ public class ChatActivity extends BaseActivity implements View.OnClickListener {
         }
     }
 
-    @Override
-    public void onClick(View v) {
-        if (v.getId() == R.id.Main_btnSend) {
-            addChat(editText.getText().toString(), ChatContent.Type.SEND);
-            sendMessageToLLM(editText.getText().toString());
-            editText.setText("");
-        }
-    }
-
     private void addChat(String chatText, ChatContent.Type type) {
         chatContents.add(new ChatContent(chatText, type));
         chatAdapter.notifyItemInserted(chatContents.size() - 1);
         rViewChat.smoothScrollToPosition(chatContents.size() - 1);
-
-        if (type == ChatContent.Type.SEND) {
-            List<String> pair = new ArrayList<>();
-            pair.add(editText.getText().toString());
-            pair.add("");
-            history.add(pair);
-        } else if (type == ChatContent.Type.RECEIVE) {
-            if (!history.isEmpty()) {
-                history.get(history.size() - 1).set(1, chatText);
-            } else {
-                List<String> pair = new ArrayList<>();
-                pair.add("");
-                pair.add(editText.getText().toString());
-                history.add(pair);
-            }
-        }
     }
 
     private void sendMessageToLLM(String mes) {
         HashMap<String, Object> params = new HashMap<>();
         params.put("prompt", mes);
-        params.put("history", history);
+        params.put("history", getHistory());
+
         HttpUtil.httpPostForObject(HttpUtil.chat, params, new Callback() {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
@@ -188,5 +173,26 @@ public class ChatActivity extends BaseActivity implements View.OnClickListener {
                 runOnUiThread(() -> addChat("Failed to send message", ChatContent.Type.RECEIVE));
             }
         });
+    }
+
+    @NonNull
+    private List<List<String>> getHistory() {
+        List<List<String>> history = new ArrayList<>();
+        if (hideFirstUser) {
+            List<String> firstPair = new ArrayList<>();
+            firstPair.add(hidedFirstUserMes);
+            firstPair.add(chatContents.get(0).getContent());
+            history.add(firstPair);
+        }
+
+        for (int i = hideFirstUser ? 1 : 0; i < chatContents.size() - 1; i += 2) {
+            List<String> tempPair = new ArrayList<>();
+            ChatContent user = chatContents.get(i);
+            ChatContent bot = chatContents.get(i + 1);
+            tempPair.add(user.getContent());
+            tempPair.add(bot.getContent());
+            history.add(tempPair);
+        }
+        return history;
     }
 }

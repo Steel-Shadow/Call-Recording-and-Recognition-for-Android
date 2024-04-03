@@ -15,6 +15,6 @@
     <string name="continueRecognition">继续</string>
     <string name="accessibility_service_description">用于录制通话语音，识别，上传</string>
     <string name="open_settings">开启录音服务</string>
-    <string name="clear">清空记录</string>
+    <string name="clear">清空对话记录</string>
 
 </resources>
