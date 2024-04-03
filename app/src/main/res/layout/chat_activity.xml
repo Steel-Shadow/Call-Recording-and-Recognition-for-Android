@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/open_settings"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/open_settings"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/clear"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/clear"
+                android:textAllCaps="false" />
+
+
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="5dp"
+            android:background="#008577" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="50dp" />
+    </LinearLayout>
+
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_above="@+id/sendMes"
+        android:layout_alignParentEnd="true"
+        android:background="#008577" />
+
+    <LinearLayout
+        android:id="@+id/sendMes"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:padding="5dp">
+
+
+        <EditText
+            android:id="@+id/Main_etContent"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="和LLM交流"
+            android:inputType="text"
+            android:maxLines="3"
+            android:minLines="1"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/Main_btnSend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="发送"
+            android:textAllCaps="false"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+</RelativeLayout>

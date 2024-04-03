@@ -57,7 +57,7 @@ public class VoskActivity extends BaseActivity implements
 
     @Override
     protected int getLayoutId() {
-        return R.layout.main;
+        return R.layout.vosk_activity;
     }
 
     @Override

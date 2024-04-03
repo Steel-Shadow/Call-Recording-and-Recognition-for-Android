@@ -27,6 +27,8 @@ import org.vosk.android.StorageService;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -36,11 +38,39 @@ public class CallRecordingService extends AccessibilityService
         implements RecognitionListener {
     private static final String tag = CallRecordingService.class.getSimpleName();
     private static final int NOTIFICATION_ID_SERVICE = 2;
-
     private String text = "";
     private Model model;
     private SpeechService speechService;
+    private Timer timer;
+    public static final String ACTION_SEND_STRING = CallRecordingService.class.getName() + ".SEND_STRING";
+    public static final String EXTRA_STRING = "extra_string";
+    PhoneStateListener phoneStateListener;
 
+    private void sendMesToChat(String message) {
+        Log.i(tag, "Send message to chat: " + message);
+        Intent intent = new Intent();
+        intent.setAction(ACTION_SEND_STRING)
+                .putExtra(EXTRA_STRING, message)
+                .setPackage(getPackageName());
+        sendBroadcast(intent);
+    }
+
+    private void startUpload() {
+        timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                upload(text);
+            }
+        }, 10000, 10000); // 每隔10秒执行一次
+    }
+
+    private void stopUpload() {
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
+    }
 
     // @noinspection deprecation
     @Override
@@ -48,8 +78,10 @@ public class CallRecordingService extends AccessibilityService
         super.onCreate();
         Log.d(tag, tag + " create");
         initModel();
-        upload("测试：通话开始");
-        PhoneStateListener phoneStateListener = new PhoneStateListener() {
+
+//        upload("测试：通话开始");
+
+        phoneStateListener = new PhoneStateListener() {
             @Override
             public void onCallStateChanged(int state, String phoneNumber) {
                 switch (state) {
@@ -59,6 +91,7 @@ public class CallRecordingService extends AccessibilityService
                             speechService.stop();
                             speechService = null;
                         }
+                        stopUpload();
                         break;
                     case TelephonyManager.CALL_STATE_RINGING:
                         Log.d(tag, "Call State: Ringing");
@@ -72,6 +105,7 @@ public class CallRecordingService extends AccessibilityService
                         } catch (IOException e) {
                             Log.e(tag, "Error: " + e.getMessage());
                         }
+                        startUpload();
                         break;
                 }
             }
@@ -92,17 +126,18 @@ public class CallRecordingService extends AccessibilityService
     private void upload(String text) {
         HashMap<String, String> params = new HashMap<>();
         params.put("prompt", text);
-        HttpUtil.httpPost("http://192.168.5.60:30000/", params, new Callback() {
+        HttpUtil.httpPost(HttpUtil.send, params, new Callback() {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
                 try {
                     assert response.body() != null;
-//                    JSONObject jsonObject = new JSONObject(response.body().string());
-                    Log.d(tag, "Upload response: " + response.body().string());
-//                    if (jsonObject.getBoolean("bad")) {
-//                        NotificationHelper.showNotification(CallRecordingService.this, "通话检测异常", "可能为电信诈骗");
-//                        VibrationHelper.vibrate(CallRecordingService.this, 100);
-//                    }
+                    JSONObject jsonObject = new JSONObject(response.body().string());
+                    Log.d(tag, "Upload response: " + jsonObject);
+                    if (jsonObject.getBoolean("judge")) {
+                        NotificationHelper.showNotification(CallRecordingService.this, "通话检测异常", "可能为电信诈骗");
+                        VibrationHelper.vibrate(CallRecordingService.this, 100);
+                    }
+                    sendMesToChat(jsonObject.getString("response"));
                 } catch (Exception e) {
                     Log.e(tag, "Upload error: " + e.getMessage());
                 }
@@ -110,6 +145,7 @@ public class CallRecordingService extends AccessibilityService
 
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                sendMesToChat("网络请求失败，请检查网络连接");
                 Log.e(tag, "Upload fail: " + e.getMessage());
             }
         });
@@ -128,7 +164,7 @@ public class CallRecordingService extends AccessibilityService
 
     private void startForegroundService() {
         createNotificationChannel();
-        Intent notificationIntent = new Intent(this, VoskActivity.class);
+        Intent notificationIntent = new Intent(this, ChatActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new Notification.Builder(this, tag)
                 .setContentTitle(tag)
@@ -162,6 +198,7 @@ public class CallRecordingService extends AccessibilityService
             speechService.stop();
             speechService.shutdown();
         }
+        stopUpload();
     }
 
     @Override
@@ -180,7 +217,6 @@ public class CallRecordingService extends AccessibilityService
             String temp = jsonObject.getString("text");
             text += temp.isEmpty() ? "" : temp + "\n";
             Log.d(tag, "Rec result up to now: \n" + text);
-            upload(text);
         } catch (JSONException e) {
             Log.e(tag, "JSON Error: " + e.getMessage());
         }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">电信诈骗识别与干预</string>
+    <string name="app_name">VoiceGuard</string>
     <string name="recognize_file">识别文件</string>
     <string name="recognize_microphone">识别麦克风</string>
     <string name="stop_microphone">停止麦克风</string>
@@ -14,6 +14,7 @@
     <string name="pause">暂停</string>
     <string name="continueRecognition">继续</string>
     <string name="accessibility_service_description">用于录制通话语音，识别，上传</string>
-    <string name="open_settings">打开设置</string>
+    <string name="open_settings">开启录音服务</string>
+    <string name="clear">清空记录</string>
 
 </resources>

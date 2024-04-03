@@ -22,6 +22,11 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 
 public class HttpUtil {
+        private static final String baseUrl = "http://192.168.5.60:30000/"; // 服务器地址
+//    private static final String baseUrl = "http://127.0.0.1:4523/m1/4265001-0-default"; // 服务器地址
+
+    public static final String send = baseUrl;
+    public static final String chat = baseUrl + "chat";
     private static final OkHttpClient okHttpClient = new OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)//设置连接超时时间
             .readTimeout(10, TimeUnit.SECONDS)//设置读取超时时间
@@ -43,7 +48,6 @@ public class HttpUtil {
             getUrl.append(s).append('/');
         }
         String finalUrl = getUrl.toString();
-        System.out.println(finalUrl);
 
         // build request
         Request request = new Request.Builder().get()
@@ -59,7 +63,6 @@ public class HttpUtil {
      * */
     public static void httpPost(String url, HashMap<String, String> params, Callback callback) {
         // build url
-        System.out.println(url);
         JSONObject jsonBody = new JSONObject(params);
 
         // build request
@@ -74,7 +77,6 @@ public class HttpUtil {
 
     public static void httpPostForObject(String url, HashMap<String, Object> params, Callback callback) {
         // build url
-        System.out.println(url);
         JSONObject jsonBody = new JSONObject(params);
 
         // build request
@@ -114,7 +116,6 @@ public class HttpUtil {
      * */
     public static void httpPut(String url, HashMap<String, String> params, Callback callback) {
         // build url
-        System.out.println(url);
         JSONObject jsonBody = new JSONObject(params);
 
         // build request
@@ -137,7 +138,6 @@ public class HttpUtil {
             deleteUrl.append(s).append('/');
         }
         String finalUrl = deleteUrl.toString();
-        System.out.println(finalUrl);
 
         // build request
         Request request = new Request.Builder().delete()
@@ -188,7 +188,6 @@ public class HttpUtil {
         // build url
         String postFileUrl = "";
         String finalUrl = postFileUrl + fileType + "/";
-        System.out.println(finalUrl);
 
         // build request
         RequestBody requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
